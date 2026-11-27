@@ -691,11 +691,110 @@ function renderPool(){
   '<div class="toolbar"><input type="search" id="poolSearch" placeholder="🔍 이름 · 연락처 · 소속 검색" value="'+escAttr(poolQ)+'">'+
   '<select id="poolFilterSel">'+CAND_FILTERS.map(function(f){return "<option value='"+f[0]+"'"+(poolFilter===f[0]?" selected":"")+">"+f[1]+"</option>";}).join("")+'</select>'+
   '<select id="poolFieldSel"><option value="all"'+(poolFieldFilter==="all"?" selected":"")+'>분야 전체</option>'+fieldsPresent.map(function(f){return "<option value='"+f+"'"+(poolFieldFilter===f?" selected":"")+">"+f+"</option>";}).join("")+'</select>'+
-  '<button class="btn btn-navy" style="margin-left:auto" onclick="openCandModal(null)">+ 후보자 등록</button></div>'+
+  '<button class="btn btn-line" style="margin-left:auto" onclick="openPoolExport()">🖨 출력 · 내려받기</button>'+
+  '<button class="btn btn-navy" onclick="openCandModal(null)">+ 후보자 등록</button></div>'+
   '<div class="card"><div class="card-body">'+
   '<table class="t"><thead><tr><th>이름 / 소속</th><th>분야</th><th>상태</th><th>현재 활동</th><th>연락처</th><th>추천 적합성</th><th>관리</th></tr></thead>'+
   '<tbody>'+(rows || '<tr><td colspan="7"><div class="empty">등록된 후보자가 없습니다. 상단의 [+ 후보자 등록]으로 시작하세요.</div></td></tr>')+'</tbody></table>'+
   '</div></div>';
+}
+
+/* ─── 인력풀 명단 출력 (인쇄 · PDF 저장 · 한글/워드용 파일) ─── */
+function filteredPool(){
+  var q = (poolQ||"").toLowerCase();
+  return DB.candidates.filter(function(c){
+    if(c.archived) return false;
+    if(poolFilter!=="all" && c.status!==poolFilter) return false;
+    if(poolFieldFilter!=="all" && (c.field||"기타")!==poolFieldFilter) return false;
+    if(q && (c.name+" "+(c.tel||"")+" "+(c.affiliation||"")).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+var EXPORT_COLS = [
+  ["field","분야",true],["aff","소속/직함",true],["status","상태",true],["tel","연락처",true],
+  ["cfm","추천 의사 확인일",true],["act","현재 활동 법인",false],["fit","추천 적합성",false],["note","비고",true]
+];
+function openPoolExport(){
+  var n = filteredPool().length;
+  var filterTxt = [];
+  if(poolFilter!=="all"){ var ff = CAND_FILTERS.filter(function(f){return f[0]===poolFilter;})[0]; filterTxt.push("상태: "+(ff?ff[1]:poolFilter)); }
+  if(poolFieldFilter!=="all") filterTxt.push("분야: "+poolFieldFilter);
+  if(poolQ) filterTxt.push("검색: "+poolQ);
+  var boxes = EXPORT_COLS.map(function(c){
+    return "<label style='display:inline-flex;align-items:center;gap:6px;margin:3px 14px 3px 0;font-weight:400;font-size:13px'><input type='checkbox' id='ex-"+c[0]+"' "+(c[2]?"checked":"")+"> "+c[1]+"</label>";
+  }).join("");
+  showModal(
+    '<h3>인력풀 명단 출력</h3><div class="modal-sub">현재 화면의 조건으로 <b>'+n+'명</b>을 출력합니다.'+(filterTxt.length?' ('+esc(filterTxt.join(" · "))+')':' (전체)')+'<br>조건을 바꾸려면 닫고 목록에서 검색·필터를 먼저 고르세요.</div>'+
+    '<label style="display:block;margin-bottom:10px">문서 제목<input id="ex-title" value="추천 후보자 인력풀 명단"></label>'+
+    '<div style="margin-bottom:6px"><b style="font-size:13px">포함할 항목</b> <span style="font-size:12px;color:var(--sub)">(이름은 항상 포함)</span></div>'+boxes+
+    '<div style="margin-top:12px;padding:10px 12px;background:#f6f7fb;border-radius:8px;font-size:12.5px;line-height:1.7">'+
+      '• <b>인쇄 / PDF 저장</b>: 인쇄 창에서 프린터를 고르면 인쇄, <b>"PDF로 저장"</b>을 고르면 PDF 파일이 됩니다.<br>'+
+      '• <b>한글용 파일(.doc)</b>: 한글·워드에서 열 수 있는 문서입니다. 한글에서 열어 hwp로 다시 저장하세요.<br>'+
+      '• 연락처가 포함된 문서는 <b>개인정보</b>이니 보관·전달에 주의하세요.'+
+    '</div>'+
+    '<div class="modal-actions"><button class="btn btn-line" onclick="closeModal()">닫기</button>'+
+    '<button class="btn btn-line" onclick="poolWord()">한글용 파일(.doc) 받기</button>'+
+    '<button class="btn btn-navy" onclick="poolPrint()">인쇄 / PDF 저장</button></div>'
+  );
+}
+function buildPoolDoc(){
+  var list = filteredPool().sort(function(a,b){ return (a.name||"").localeCompare(b.name||"","ko"); });
+  var on = {}; EXPORT_COLS.forEach(function(c){ var el=document.getElementById("ex-"+c[0]); on[c[0]] = el ? el.checked : c[2]; });
+  var title = (document.getElementById("ex-title")||{}).value || "추천 후보자 인력풀 명단"; title = title.trim() || "추천 후보자 인력풀 명단";
+  var cols = EXPORT_COLS.filter(function(c){ return on[c[0]]; });
+  function cell(c, k){
+    if(k==="field") return esc(c.field||"기타");
+    if(k==="aff") return esc(c.affiliation||"");
+    if(k==="status") return esc(CAND_STATUS[c.status]||c.status||"");
+    if(k==="tel") return esc(c.tel||"");
+    if(k==="cfm") return esc(c.consentConfirmedDate||"");
+    if(k==="note") return esc(c.note||"");
+    if(k==="fit") return esc(candFitness(c).badge.txt);
+    if(k==="act"){
+      return esc(apptsOfCand(c.id).filter(function(a){return apptEffectiveStatus(a)==="active";}).map(function(a){var cp=corpById(a.corpId);return cp?cp.name:"";}).filter(Boolean).join(", "));
+    }
+    return "";
+  }
+  var th = "<th style='width:34px'>번호</th><th style='width:70px'>이름</th>"+cols.map(function(c){return "<th>"+c[1]+"</th>";}).join("");
+  var trs = list.map(function(c,i){
+    return "<tr><td style='text-align:center'>"+(i+1)+"</td><td><b>"+esc(c.name)+"</b></td>"+cols.map(function(k){return "<td>"+cell(c,k[0])+"</td>";}).join("")+"</tr>";
+  }).join("") || "<tr><td colspan='"+(cols.length+2)+"' style='text-align:center;padding:20px'>해당하는 후보자가 없습니다.</td></tr>";
+  var privacy = on.tel ? "<p style='margin-top:10px;font-size:10pt;color:#a33'>※ 이 문서에는 개인정보(연락처)가 포함되어 있습니다. 업무 외 용도로 사용하거나 외부에 유출하지 마십시오.</p>" : "";
+  var html =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>"+
+    "<head><meta charset='utf-8'><title>"+esc(title)+"</title>"+
+    "<style>@page{size:A4 landscape;margin:14mm}body{font-family:'맑은 고딕','Malgun Gothic',sans-serif;font-size:10.5pt;color:#111}"+
+    "h1{font-size:17pt;text-align:center;margin:0 0 4px}.sub{text-align:center;font-size:10pt;color:#555;margin-bottom:12px}"+
+    "table{border-collapse:collapse;width:100%}th,td{border:1px solid #444;padding:4px 6px;font-size:10pt;vertical-align:top}"+
+    "th{background:#e8ebf3}tr{page-break-inside:avoid}thead{display:table-header-group}</style></head><body>"+
+    "<h1>"+esc(title)+"</h1>"+
+    "<div class='sub'>대구중구지역사회보장협의체 · 기준일 "+todayISO()+" · 총 "+list.length+"명</div>"+
+    "<table border='1' cellspacing='0' cellpadding='4'><thead><tr>"+th+"</tr></thead><tbody>"+trs+"</tbody></table>"+privacy+
+    "</body></html>";
+  return {html:html, title:title, count:list.length};
+}
+function poolPrint(){
+  var d = buildPoolDoc();
+  var f = document.createElement("iframe");
+  f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(f);
+  var w = f.contentWindow, doc = w.document; doc.open(); doc.write(d.html); doc.close();
+  var oldTitle = document.title; document.title = d.title + "_" + todayISO();
+  setTimeout(function(){
+    try{ w.focus(); w.print(); }catch(e){ toast("인쇄 창을 열지 못했습니다. 한글용 파일로 받아 인쇄해 주세요."); }
+    setTimeout(function(){ document.title = oldTitle; if(f.parentNode) f.parentNode.removeChild(f); }, 60000);
+  }, 300);
+  pushLog("인력풀 명단 출력", d.count+"명 (인쇄/PDF)");
+}
+function poolWord(){
+  var d = buildPoolDoc();
+  var blob = new Blob(["﻿"+d.html], {type:"application/msword;charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a"); a.href = url; a.download = d.title.replace(/[\\\/:*?"<>|]/g,"_")+"_"+todayISO()+".doc";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); if(a.parentNode) a.parentNode.removeChild(a); }, 1500);
+  pushLog("인력풀 명단 출력", d.count+"명 (한글용 파일)");
+  toast("파일을 내려받았습니다.");
 }
 
 function openCandDetail(id){
