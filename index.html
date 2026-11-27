@@ -396,6 +396,101 @@ function renderDash(){
     '</div></div>';
 }
 
+/* ════════════════════ 5-1. 첨부파일 (내 구글 드라이브의 비공개 폴더에 저장) ════════════════════ */
+var MAX_FILE_MB = 10;
+var ALLOWED_EXT = ["pdf","hwp","hwpx","doc","docx","xls","xlsx","ppt","pptx","jpg","jpeg","png","zip","txt"];
+var CORP_FILE_CATS = ["정관","법인등기부등본","임원명부","이사회 회의록","결산서류","기타"];
+var CASE_FILE_CATS = ["추천 요청 공문","이사회 회의록 사본","이력서","취임승낙서","특수관계 부존재 각서","결격사유 부존재 각서","추천서(발송본)","이사 선임 결과 통보","기타"];
+var CASE_REQUIRED = ["이사회 회의록 사본","이력서","취임승낙서","특수관계 부존재 각서","결격사유 부존재 각서"];
+
+function fmtSize(n){ n=n||0; return n<1024 ? n+"B" : n<1048576 ? Math.round(n/1024)+"KB" : (n/1048576).toFixed(1)+"MB"; }
+function ownerOf(kind,id){ return kind==="corp" ? corpById(id) : caseById(id); }
+function reopenOwner(kind,id){ if(kind==="corp") openCorpDetail(id); else openCaseDetail(id); }
+
+function fileSectionHTML(kind, id, cats, title, hint){
+  var o = ownerOf(kind,id); var list = (o && o.files) || [];
+  var rows = list.map(function(f){
+    return "<tr><td><span class='badge b-mute'>"+esc(f.cat||"기타")+"</span></td>"+
+      "<td><a href='#' onclick=\"downloadFile('"+kind+"','"+id+"','"+f.id+"');return false;\" style='color:var(--navy);font-weight:600'>"+esc(f.name)+"</a>"+
+      (f.note?"<br><span style='color:var(--sub);font-size:12px'>"+esc(f.note)+"</span>":"")+"</td>"+
+      "<td style='white-space:nowrap'>"+fmtSize(f.size)+"<br><span style='color:var(--sub);font-size:11.5px'>"+esc(f.at||"")+"</span></td>"+
+      "<td><button class='btn btn-danger btn-sm' onclick=\"deleteFile('"+kind+"','"+id+"','"+f.id+"')\">삭제</button></td></tr>";
+  }).join("");
+  var catOpts = cats.map(function(c){ return "<option>"+esc(c)+"</option>"; }).join("");
+  return ''+
+  '<div style="margin:16px 0 6px"><b style="font-size:13.5px">'+title+'</b></div>'+
+  (hint?'<div style="margin-bottom:8px;font-size:12.5px">'+hint+'</div>':'')+
+  '<table class="t"><thead><tr><th>구분</th><th>파일</th><th>크기·등록일</th><th></th></tr></thead>'+
+  '<tbody>'+(rows||'<tr><td colspan="4"><div class="empty" style="padding:12px">첨부된 파일이 없습니다.</div></td></tr>')+'</tbody></table>'+
+  '<div style="margin-top:10px;padding:12px;border:1.4px dashed var(--line);border-radius:10px">'+
+    '<div class="form-grid full">'+
+      '<label>구분<select id="fs-cat">'+catOpts+'</select></label>'+
+      '<label>메모(선택)<input id="fs-note" placeholder="예: 2026.12.1자 이사회 회의록"></label>'+
+      '<label>파일 선택 (PDF·한글·워드·엑셀·이미지·ZIP, 1개당 '+MAX_FILE_MB+'MB 이하)<input type="file" id="fs-file" accept=".'+ALLOWED_EXT.join(",.")+'"></label>'+
+    '</div>'+
+    '<div style="margin-top:8px;text-align:right"><button class="btn btn-navy btn-sm" id="fs-btn" onclick="uploadFile(\''+kind+'\',\''+id+'\')">올리기</button></div>'+
+  '</div>';
+}
+function readB64(file){
+  return new Promise(function(res,rej){
+    var r = new FileReader();
+    r.onload = function(){ var s=String(r.result); res(s.slice(s.indexOf(",")+1)); };
+    r.onerror = function(){ rej(new Error("read")); };
+    r.readAsDataURL(file);
+  });
+}
+var FILE_ERR = { bad_type:"올릴 수 없는 파일 형식입니다.", too_big:"파일이 너무 큽니다. "+MAX_FILE_MB+"MB 이하로 줄여주세요.", not_found:"서버에서 파일을 찾지 못했습니다." };
+async function uploadFile(kind, id){
+  var inp = document.getElementById("fs-file");
+  var f = inp && inp.files && inp.files[0];
+  if(!f){ toast("올릴 파일을 선택하세요."); return; }
+  var ext = f.name.indexOf(".")>=0 ? f.name.split(".").pop().toLowerCase() : "";
+  if(ALLOWED_EXT.indexOf(ext)<0){ toast("올릴 수 없는 파일 형식입니다."); return; }
+  if(f.size > MAX_FILE_MB*1048576){ toast("파일이 너무 큽니다. "+MAX_FILE_MB+"MB 이하로 줄여주세요."); return; }
+  var cat = document.getElementById("fs-cat").value, note = document.getElementById("fs-note").value.trim();
+  var btn = document.getElementById("fs-btn"); btn.disabled = true; btn.textContent = "올리는 중...";
+  try{
+    var data = await readB64(f);
+    var d = await api({action:"upload", name:f.name, mime:f.type||"application/octet-stream", data:data, token:TOKEN});
+    if(d && d.error==="auth"){ handleAuthLost(); return; }
+    if(!d || !d.ok){ toast(FILE_ERR[d && d.error] || "업로드에 실패했습니다. 잠시 후 다시 시도해주세요."); btn.disabled=false; btn.textContent="올리기"; return; }
+    var o = ownerOf(kind,id); o.files = o.files || [];
+    o.files.push({id:uid(), driveId:d.id, name:f.name, size:d.size, cat:cat, note:note, at:todayISO()});
+    await saveDB();
+    pushLog("첨부파일 등록", (kind==="corp"?(o.name||""):(o.title||""))+" · "+cat+" · "+f.name);
+    toast("파일을 올렸습니다.");
+    reopenOwner(kind,id);
+  }catch(e){
+    toast("업로드에 실패했습니다. 인터넷 연결을 확인해주세요.");
+    btn.disabled=false; btn.textContent="올리기";
+  }
+}
+async function downloadFile(kind, id, fid){
+  var o = ownerOf(kind,id); var m = ((o&&o.files)||[]).find(function(x){return x.id===fid;}); if(!m) return;
+  toast("내려받는 중...");
+  try{
+    var d = await api({action:"download", driveId:m.driveId, token:TOKEN});
+    if(d && d.error==="auth"){ handleAuthLost(); return; }
+    if(!d || !d.ok){ toast(FILE_ERR[d && d.error] || "내려받기에 실패했습니다."); return; }
+    var bin = atob(d.data), arr = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    var url = URL.createObjectURL(new Blob([arr],{type:d.mime||"application/octet-stream"}));
+    var a = document.createElement("a"); a.href=url; a.download=m.name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1500);
+  }catch(e){ toast("내려받기에 실패했습니다. 인터넷 연결을 확인해주세요."); }
+}
+async function deleteFile(kind, id, fid){
+  var o = ownerOf(kind,id); var m = ((o&&o.files)||[]).find(function(x){return x.id===fid;}); if(!m) return;
+  if(!confirm("'"+m.name+"' 파일을 삭제할까요? (드라이브 휴지통으로 이동합니다)")) return;
+  try{
+    var d = await api({action:"deleteFile", driveId:m.driveId, token:TOKEN});
+    if(d && d.error==="auth"){ handleAuthLost(); return; }
+    if(!d || !d.ok){ toast("삭제에 실패했습니다. 다시 시도해주세요."); return; }
+    o.files = o.files.filter(function(x){return x.id!==fid;});
+    await saveDB(); pushLog("첨부파일 삭제", m.name); toast("삭제했습니다."); reopenOwner(kind,id);
+  }catch(e){ toast("삭제에 실패했습니다. 인터넷 연결을 확인해주세요."); }
+}
+
 /* ════════════════════ 6. 법인 및 현황 관리 ════════════════════ */
 var treeQ = "";
 function renderCorp(){
@@ -448,6 +543,7 @@ function openCorpDetail(id){
     '<button class="btn btn-line btn-sm" onclick="openApptModal(null,\''+id+'\')">+ 선임 이력 등록</button></div>'+
     '<table class="t"><thead><tr><th>이사</th><th>임기</th><th>차수</th><th>상태</th><th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="5"><div class="empty">등록된 외부추천이사가 없습니다.</div></td></tr>')+'</tbody></table>'+
+    fileSectionHTML("corp", id, CORP_FILE_CATS, "법인 첨부자료", "")+
     '<div class="modal-actions">'+
       '<button class="btn btn-danger" onclick="archiveCorp(\''+id+'\')">법인 보관</button>'+
       '<button class="btn btn-line" onclick="openCorpModal(\''+id+'\')">법인정보 수정</button>'+
@@ -725,11 +821,17 @@ function openCaseDetail(id){
   var stageBtns = STAGES.map(function(s,i){
     return "<button class='btn "+(i===k.stage?"btn-navy":"btn-line")+" btn-sm' onclick=\"setStage('"+k.id+"',"+i+")\">"+(i+1)+". "+s+"</button>";
   }).join(" ");
+  var haveCats = (k.files||[]).map(function(f){return f.cat;});
+  var reqChecklist = "<span style='color:var(--sub)'>필수 제출서류 확인: </span>"+CASE_REQUIRED.map(function(c){
+    var ok = haveCats.indexOf(c)>=0;
+    return "<span class='badge "+(ok?"b-ok":"b-no")+"' style='margin:2px 3px 2px 0'>"+(ok?"✓ ":"")+esc(c)+"</span>";
+  }).join("");
   showModal(
     '<h3>'+esc(k.title)+'</h3><div class="modal-sub">'+esc(corp?corp.name:"")+' · 사유: '+esc(k.reason||"")+' · 필요 인원 '+(k.requiredCount||1)+'명</div>'+
     '<div style="margin-bottom:12px"><b style="font-size:13px">진행 단계</b><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+stageBtns+'</div></div>'+
     '<div style="margin-bottom:12px"><b style="font-size:13px">추천 후보자 (3배수 매칭)</b><div style="margin-top:6px">'+(candChips||"<span style=\'font-size:12.5px;color:var(--sub)\'>등록된 후보자가 없습니다.</span>")+'</div></div>'+
     '<div class="form-grid full"><b style="grid-column:1/-1;font-size:13px">단계별 일자</b>'+dateFields+'</div>'+
+    fileSectionHTML("case", k.id, CASE_FILE_CATS, "추천 관련 서류", reqChecklist)+
     '<div class="modal-actions">'+
       '<button class="btn btn-line" onclick="genDocument(\''+k.id+'\')">추천 공문 초안 생성</button>'+
       '<button class="btn btn-danger" onclick="deleteCase(\''+k.id+'\')">삭제</button>'+
@@ -752,6 +854,8 @@ async function setStage(caseId, stage){
 }
 async function deleteCase(id){
   var k = caseById(id); if(!confirm("'"+k.title+"' 추천절차를 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return;
+  var fs = k.files || [];
+  for(var i=0;i<fs.length;i++){ try{ await api({action:"deleteFile", driveId:fs[i].driveId, token:TOKEN}); }catch(e){} }
   DB.cases = DB.cases.filter(function(x){return x.id!==id;});
   await saveDB(); await pushLog("추천절차 삭제", k.title); closeModal(); render();
 }
