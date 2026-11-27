@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>외부추천이사 통합관리시스템 - 대구중구지역사회보장협의체</title>
+<style>
+:root{
+  --navy:#1B2540; --navy2:#232F52; --navy3:#33406A;
+  --accent:#0F7A72; --accent-soft:#8FD9CF;
+  --gold:#B4790C; --gold-bg:#FBF1DE;
+  --red:#B23A34; --red-bg:#FBEEEC;
+  --teal:#0F7A72; --teal-bg:#E7F5F3;
+  --bg:#F1F3F6; --card:#FFFFFF; --line:#E1E5EC;
+  --ink:#20263A; --sub:#666F86;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit;outline:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--accent-soft);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* 로그인 */
+#login-screen{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
+.login-box{background:#fff;padding:40px 34px;border-radius:12px;box-shadow:0 4px 15px rgba(27,37,64,.12);width:390px;max-width:100%;text-align:center;border:1px solid var(--line)}
+.login-box .badge{display:inline-block;background:var(--teal-bg);color:var(--accent);font-size:11.5px;font-weight:800;letter-spacing:.05em;padding:4px 12px;border-radius:99px;margin-bottom:14px}
+.login-box h2{color:var(--navy);margin-bottom:6px;font-size:20px;font-weight:800}
+.login-box p{color:var(--sub);font-size:13px;margin-bottom:22px}
+.login-box input{width:100%;padding:12px 14px;margin-bottom:12px;border:1.5px solid var(--line);border-radius:8px;font-size:14.5px}
+.login-box input:focus{border-color:var(--accent)}
+.login-box .login-btn{width:100%;background:var(--navy);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;margin-top:6px;transition:background .2s}
+.login-box .login-btn:hover{background:var(--navy2)}
+#login-err{color:var(--red);font-size:12.5px;margin-top:14px;font-weight:600;display:none}
+.login-note{margin-top:18px;font-size:11.5px;color:var(--sub);background:#F4F6F9;border-radius:8px;padding:10px 12px;text-align:left;line-height:1.7}
+
+/* 레이아웃 */
+.app{display:none;min-height:100vh}
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.content{padding:22px 26px;flex:1}
+.sidebar{width:250px;flex-shrink:0;background:#151B2C;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-head{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.14)}
+.sb-head .org{font-size:11px;letter-spacing:.14em;color:rgba(255,255,255,.55)}
+.sb-head .title{font-size:17px;font-weight:800;line-height:1.35;margin-top:6px}
+.sb-head .title em{color:var(--accent-soft);font-style:normal}
+.sb-nav{flex:1;padding:14px 0}
+.sb-group{font-size:11px;color:rgba(255,255,255,.4);padding:14px 20px 6px;letter-spacing:.1em}
+.sb-btn{width:100%;display:flex;align-items:center;gap:12px;padding:12px 18px;color:rgba(255,255,255,.82);text-align:left;border-left:4px solid transparent;transition:background .15s}
+.sb-btn .ico{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sb-btn .txt{display:flex;flex-direction:column}
+.sb-btn .txt b{font-size:14.5px;font-weight:700}
+.sb-btn .txt span{font-size:11px;color:rgba(255,255,255,.45)}
+.sb-btn:hover{background:rgba(255,255,255,.07)}
+.sb-btn.on{background:rgba(15,122,114,.22);border-left-color:var(--accent-soft);color:#fff}
+.sb-btn.on .ico{background:var(--accent);color:#fff}
+.sb-btn .nav-warn{margin-left:auto;font-size:10px;background:var(--red);color:#fff;border-radius:99px;padding:1px 7px;font-weight:800}
+.sb-foot{padding:16px 20px;font-size:10.5px;color:rgba(255,255,255,.42);border-top:1px solid rgba(255,255,255,.14);line-height:1.7}
+
+.topbar{background:#fff;color:var(--ink);padding:16px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.topbar h1{font-size:19px;font-weight:800;color:var(--navy)}
+.topbar .right{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--sub)}
+.topbar button.logout{color:var(--sub);text-decoration:underline;font-size:12.5px}
+
+/* 공통 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:18px}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-head h3{font-size:15.5px;font-weight:800;color:var(--navy)}
+.card-body{padding:18px 20px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.stat .lbl{font-size:12px;color:var(--sub);font-weight:600}
+.stat .num{font-size:26px;font-weight:800;color:var(--navy);margin-top:4px}
+.stat.c1 .num{color:var(--accent)} .stat.c2 .num{color:var(--gold)} .stat.c3 .num{color:var(--red)} .stat.c4 .num{color:var(--navy3)}
+.stat .sub{font-size:11.5px;color:var(--sub);margin-top:2px}
+
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t thead th{text-align:left;padding:9px 10px;background:#F6F7FA;color:var(--sub);font-weight:700;font-size:12px;border-bottom:1px solid var(--line)}
+table.t tbody td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t tbody tr:hover{background:#FAFBFD}
+.empty{padding:26px;text-align:center;color:var(--sub);font-size:13px}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.b-ok{background:var(--teal-bg);color:var(--accent)}
+.b-warn{background:var(--gold-bg);color:var(--gold)}
+.b-no{background:var(--red-bg);color:var(--red)}
+.b-mute{background:#EEF0F4;color:var(--sub)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;font-size:13.5px;font-weight:700}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover{background:var(--navy2)}
+.btn-line{background:#fff;border:1.4px solid var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--navy3)}
+.btn-danger{background:var(--red-bg);color:var(--red)}
+.btn-sm{padding:6px 10px;font-size:12.5px}
+.chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:#EEF0F4;color:var(--sub)}
+.chip.wait{background:var(--teal-bg);color:var(--accent)}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar input[type=text],.toolbar input[type=search]{padding:9px 12px;border:1.4px solid var(--line);border-radius:8px;font-size:13.5px;min-width:220px}
+.toolbar select{padding:9px 10px;border:1.4px solid var(--line);border-radius:8px;font-size:13.5px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.form-grid.full label{grid-column:1/-1}
+.form-grid label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--sub)}
+.form-grid label input,.form-grid label select,.form-grid label textarea{font-weight:400;padding:9px 11px;border:1.4px solid var(--line);border-radius:8px;font-size:13.5px;color:var(--ink)}
+.form-hint{grid-column:1/-1;font-size:11.5px;color:var(--sub);background:#F6F7FA;padding:8px 10px;border-radius:8px;margin-top:-4px}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(20,25,40,.5);z-index:100;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:14px;width:560px;max-width:100%;padding:26px 28px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal h3{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.modal .modal-sub{font-size:12.5px;color:var(--sub);margin-bottom:18px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+
+.stage-track{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 4px}
+.stage-pill{font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:#EEF0F4;color:var(--sub)}
+.stage-pill.done{background:var(--teal-bg);color:var(--accent)}
+.stage-pill.cur{background:var(--navy);color:#fff}
+
+.alert-list .row{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.alert-list .row:last-child{border-bottom:none}
+.alert-list .ico{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.alert-list .txt{font-size:13.5px}
+.alert-list .txt .sub{font-size:12px;color:var(--sub);margin-top:2px}
+
+.set-note{font-size:12px;color:var(--sub);background:#F6F7FA;padding:10px 12px;border-radius:8px;line-height:1.7}
+.loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent-soft);animation:pulse 1s infinite ease-in-out}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:9px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none}
+
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .sidebar{position:relative;height:auto;width:100%}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .content{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <span class="badge">대구중구지역사회보장협의체</span>
+    <h2>외부추천이사 통합관리시스템</h2>
+    <p>사회복지법인 외부(추천)이사 임기·추천절차 관리</p>
+    <input type="text" id="li-id" placeholder="아이디" autocomplete="username">
+    <input type="password" id="li-pw" placeholder="비밀번호" autocomplete="current-password">
+    <button class="login-btn" id="li-btn">로그인</button>
+    <div id="login-err">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+    <div class="login-note">
+      · 아이디와 비밀번호는 사무국 담당자에게 문의하세요.<br>
+      · 데이터는 구글시트에 저장되며, 로그인한 사람만 볼 수 있습니다.<br>
+      · 사회복지사업법 제20조에 따라 이사 결원 발생 시 2개월 이내 보충이 원칙이며,
+      법인은 선임사유 발생일로부터 15일 이내(임기만료는 3개월 전부터) 추천을 요청합니다.
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="org">대구중구지역사회보장협의체</div>
+      <div class="title">외부추천이사<br><em>통합관리 시스템</em></div>
+    </div>
+    <div class="sb-nav" id="sb-nav">
+      <button class="sb-btn on" data-view="dash"><span class="ico">🏠</span><span class="txt"><b>종합대시보드</b><span>임기만료 스크리닝 · 알림</span></span></button>
+      <div class="sb-group">현황 관리</div>
+      <button class="sb-btn" data-view="corp"><span class="ico">🏢</span><span class="txt"><b>법인 및 현황 관리</b><span>법인등록 · 임기 트래킹</span></span></button>
+      <button class="sb-btn" data-view="pool"><span class="ico">👤</span><span class="txt"><b>추천후보자 관리</b><span>후보자 풀 · 연임 추적</span></span></button>
+      <button class="sb-btn" data-view="case"><span class="ico">📋</span><span class="txt"><b>추천절차 관리</b><span>3배수 매칭 · 공문 생성</span></span></button>
+      <div class="sb-group">참고 · 관리</div>
+      <button class="sb-btn" data-view="guide"><span class="ico">📘</span><span class="txt"><b>이용안내</b><span>법령 · 절차 안내</span></span></button>
+      <button class="sb-btn" data-view="report"><span class="ico">📊</span><span class="txt"><b>통계</b><span>현황 요약</span></span></button>
+      <button class="sb-btn" data-view="log"><span class="ico">🕒</span><span class="txt"><b>활동 로그</b><span>변경 이력</span></span></button>
+      <button class="sb-btn" data-view="set"><span class="ico">⚙️</span><span class="txt"><b>설정</b><span>계정 · 기준값 · 백업</span></span></button>
+    </div>
+    <div class="sb-foot">대구중구지역사회보장협의체 사무국<br>본 시스템 데이터는 공유 저장소에 보관됩니다.</div>
+  </div>
+  <main>
+    <div class="topbar">
+      <h1 id="pageTitle">종합대시보드</h1>
+      <div class="right">
+        <span id="syncState">· </span>
+        <button class="logout" id="logoutBtn">로그아웃</button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════ 1. 상수 · 상태 ════════════════════ */
+var KEY_DB   = "jgss_extdir_db";
+var KEY_SET  = "jgss_extdir_settings";
+var KEY_LOG  = "jgss_extdir_log";
+
+var DB = null, SET = null, LOGS = [];
+var CUR_VIEW = "dash";
+var loggedIn = false;
+
+var GROUP_LABEL = {general:"복지일반", disabled:"장애인법인", elder:"노인법인", childcare:"보육법인", child:"아동법인", family:"여성법인", etc:"기타"};
+var FIELD_OPTIONS = ["사회복지일반","노인복지","장애인","아동","아동청소년","아동보육","보육법인","여성가족","자활","학계","복지일반","기타"];
+var CAND_STATUS = {available:"추천 가능", active:"현재 활동 중", checking:"결격 확인 중", hold:"추천 보류", declined:"본인 거부"};
+var APPT_STATUS = {scheduled:"선임 예정", active:"활동 중", expired:"임기 만료", resigned:"사임"};
+var STAGES = ["요청 접수","3배수 추천","전문위원회 심의","추천 통보","이사회 선임","결과 등록","완료"];
+var CASE_REASON = ["임기만료","결원(사임)","결원(사망)","신규법인","기타"];
+
+function defaultSET(){
+  return {
+    orgName:"대구중구지역사회보장협의체",
+    contactPhone:"", contactEmail:"", address:"",
+    screenDays:60, dueSoonDays:7, resultWaitDays:14, boardResultDays:14
+  };
+}
+function emptyDB(){ return {corporations:[], candidates:[], appointments:[], cases:[]}; }
+/* ════════════════════ 2. 저장소 (구글시트 Apps Script Web App · 로그인 토큰 방식) ════════════════════ */
+var API_URL = "https://script.google.com/macros/s/AKfycbzBWmOEM198gC9bMTtUHC6q5HtTW4OKGTi1XdquNcn4mQp50j62pxAsEJoBNn0jGy0-/exec";
+var TOKEN = null;
+
+function tokenStore(v){ try{ if(v) sessionStorage.setItem("jgss_tok", v); else sessionStorage.removeItem("jgss_tok"); }catch(e){} }
+function tokenLoad(){ try{ return sessionStorage.getItem("jgss_tok"); }catch(e){ return null; } }
+
+async function api(payload){
+  var res = await fetch(API_URL, {
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(payload)
+  });
+  return await res.json();
+}
+function authErr(){ var e = new Error("auth"); e.auth = true; return e; }
+
+var storage = {
+  getMany: async function(keys){
+    var d = await api({action:"getMany", keys:keys, token:TOKEN});
+    if(d && d.error==="auth") throw authErr();
+    if(!d || !d.ok) throw new Error((d && d.error) || "서버 응답 오류");
+    return d.values || {};
+  },
+  set: async function(key, value){
+    var d = await api({action:"set", key:key, value:value, token:TOKEN});
+    if(d && d.error==="auth") throw authErr();
+    return (d && d.ok) ? true : false;
+  }
+};
+
+function setSync(msg){ var el=document.getElementById("syncState"); if(el) el.textContent = msg; }
+
+function handleAuthLost(){
+  loggedIn = false; TOKEN = null; tokenStore(null);
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  var err = document.getElementById("login-err");
+  err.textContent = "로그인이 만료되었습니다. 다시 로그인해주세요.";
+  err.style.display = "block";
+}
+
+function normalizeDB(){
+  ["corporations","candidates","appointments","cases"].forEach(function(k){ if(!DB[k]) DB[k] = []; });
+}
+
+/* 불러오기 실패 시 빈 데이터로 대체하지 않습니다(저장 시 기존 데이터를 덮어쓰는 사고 방지). 오류는 호출한 쪽에서 처리합니다. */
+async function loadAll(){
+  setSync("불러오는 중...");
+  var v = await storage.getMany([KEY_DB, KEY_SET, KEY_LOG]);
+  DB = v[KEY_DB] ? JSON.parse(v[KEY_DB]) : emptyDB();
+  normalizeDB();
+  SET = v[KEY_SET] ? Object.assign(defaultSET(), JSON.parse(v[KEY_SET])) : defaultSET();
+  LOGS = v[KEY_LOG] ? JSON.parse(v[KEY_LOG]) : [];
+  setSync("구글시트 · 동기화됨");
+}
+
+var saving = false;
+async function saveDB(){
+  saving = true; setSync("저장 중...");
+  try{
+    var ok = await storage.set(KEY_DB, JSON.stringify(DB));
+    setSync(ok ? "구글시트 · 저장됨" : "저장 실패 — 다시 시도해주세요");
+  }catch(e){
+    if(e && e.auth){ handleAuthLost(); }
+    else setSync("저장 실패 — 네트워크를 확인해주세요");
+  }
+  saving = false;
+}
+async function saveSET(){
+  try{ await storage.set(KEY_SET, JSON.stringify(SET)); setSync("설정 저장됨"); }
+  catch(e){ if(e && e.auth){ handleAuthLost(); } else setSync("설정 저장 실패"); }
+}
+async function pushLog(action, detail){
+  LOGS.unshift({t:new Date().toISOString(), action:action, detail:detail||""});
+  if(LOGS.length>300) LOGS = LOGS.slice(0,300);
+  try{ await storage.set(KEY_LOG, JSON.stringify(LOGS)); }catch(e){ if(e && e.auth){ handleAuthLost(); } }
+}
+
+/* ════════════════════ 3. 유틸 ════════════════════ */
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function escAttr(s){ return esc(s); }
+function uid(){ return "id" + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function fmt(d){ if(!d) return "—"; return d; }
+function isValidISO(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s||""); }
+function todayISO(){ var d=new Date(); return d.toISOString().slice(0,10); }
+function daysBetween(a,b){ var A=new Date(a), B=new Date(b); return Math.round((B-A)/86400000); }
+function corpById(id){ return DB.corporations.find(function(c){return c.id===id;}); }
+function candById(id){ return DB.candidates.find(function(c){return c.id===id;}); }
+function apptById(id){ return DB.appointments.find(function(a){return a.id===id;}); }
+function caseById(id){ return DB.cases.find(function(k){return k.id===id;}); }
+function apptsOfCorp(cid){ return DB.appointments.filter(function(a){return a.corpId===cid;}); }
+function apptsOfCand(cid){ return DB.appointments.filter(function(a){return a.candidateId===cid;}); }
+function activeAppts(){ return DB.appointments.filter(function(a){return a.status==="active"||a.status==="scheduled";}); }
+function toast(msg){ var t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(function(){t.style.display="none";},2200); }
+
+/* 임기 상태 자동 갱신: 종료일이 지난 active/scheduled 건은 expired로 표시(읽기 시점 계산만, 데이터는 유지) */
+function apptEffectiveStatus(a){
+  if(a.status==="resigned") return "resigned";
+  if(a.status==="scheduled" && a.startDate && a.startDate<=todayISO()) return "active";
+  if((a.status==="active"||a.status==="scheduled") && a.endDate && a.endDate<todayISO()) return "expired";
+  return a.status;
+}
+
+/* ════════════════════ 4. 라우팅 ════════════════════ */
+var VIEW_TITLE = {dash:"종합대시보드", corp:"법인 및 현황 관리", pool:"추천후보자 관리", case:"추천절차 관리", guide:"이용안내", report:"통계", log:"활동 로그", set:"설정"};
+
+function navTo(v){
+  CUR_VIEW = v;
+  document.getElementById("pageTitle").textContent = VIEW_TITLE[v] || "";
+  document.querySelectorAll(".sb-btn").forEach(function(b){ b.classList.toggle("on", b.dataset.view===v); });
+  render();
+}
+document.getElementById("sb-nav").addEventListener("click", function(e){
+  var b = e.target.closest(".sb-btn"); if(!b) return; navTo(b.dataset.view);
+});
+
+function render(){
+  var c = document.getElementById("content");
+  if(CUR_VIEW==="dash") c.innerHTML = renderDash();
+  else if(CUR_VIEW==="corp") c.innerHTML = renderCorp();
+  else if(CUR_VIEW==="pool") c.innerHTML = renderPool();
+  else if(CUR_VIEW==="case") c.innerHTML = renderCase();
+  else if(CUR_VIEW==="guide") c.innerHTML = renderGuide();
+  else if(CUR_VIEW==="report") c.innerHTML = renderReport();
+  else if(CUR_VIEW==="log") c.innerHTML = renderLog();
+  else if(CUR_VIEW==="set") c.innerHTML = renderSet();
+  bindViewEvents();
+}
+
+/* ════════════════════ 5. 대시보드 ════════════════════ */
+function renderDash(){
+  var appts = activeAppts();
+  var screenList = appts.map(function(a){
+    var d = a.endDate ? daysBetween(todayISO(), a.endDate) : null;
+    return {a:a, d:d};
+  }).filter(function(x){ return x.d!=null && x.d<=SET.screenDays; })
+    .sort(function(x,y){ return x.d-y.d; });
+  var over = screenList.filter(function(x){ return x.d<0; });
+
+  var openCases = DB.cases.filter(function(k){ return k.stage<6; });
+
+  var rows = screenList.slice(0,12).map(function(x){
+    var corp = corpById(x.a.corpId), cand = candById(x.a.candidateId);
+    var cls = x.d<0 ? "b-no" : (x.d<=SET.dueSoonDays ? "b-warn" : "b-ok");
+    var ddtxt = x.d<0 ? ("D+"+Math.abs(x.d)) : ("D-"+x.d);
+    return "<tr><td>"+esc(corp?corp.name:"—")+"</td><td>"+esc(cand?cand.name:"—")+"</td>"+
+      "<td>"+esc(x.a.startDate)+" ~ "+esc(x.a.endDate)+"</td>"+
+      "<td><span class='badge "+cls+"'>"+ddtxt+"</span></td>"+
+      "<td>"+esc(x.a.note||"")+"</td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"openCaseModal(null,'"+x.a.corpId+"','"+x.a.candidateId+"')\">재추천 시작</button></td></tr>";
+  }).join("");
+
+  var caseRows = openCases.slice(0,10).map(function(k){
+    var corp = corpById(k.corpId);
+    return "<tr><td>"+esc(corp?corp.name:"—")+"</td><td>"+esc(k.title)+"</td>"+
+      "<td>"+STAGES.map(function(s,i){ return "<span class='stage-pill "+(i<k.stage?"done":i===k.stage?"cur":"")+"'>"+s+"</span>"; }).join("")+"</td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"navTo('case');setTimeout(function(){openCaseDetail('"+k.id+"');},0)\">열기</button></td></tr>";
+  }).join("");
+
+  return ''+
+  '<div class="stat-row">'+
+    '<div class="stat"><div class="lbl">등록 법인</div><div class="num">'+DB.corporations.length+'</div><div class="sub">보관 제외</div></div>'+
+    '<div class="stat c1"><div class="lbl">활동 중 이사</div><div class="num">'+appts.filter(function(a){return apptEffectiveStatus(a)==="active";}).length+'명</div><div class="sub">추천 가능 '+DB.candidates.filter(function(c){return c.status==="available";}).length+'명</div></div>'+
+    '<div class="stat c2"><div class="lbl">임기만료 임박 (D-'+SET.screenDays+' 이내)</div><div class="num">'+screenList.length+'건</div><div class="sub">결원 발생 시 확인 대상</div></div>'+
+    '<div class="stat c3"><div class="lbl">진행 중 추천절차</div><div class="num">'+openCases.length+'건</div><div class="sub">기한 초과 '+over.length+'건</div></div>'+
+  '</div>'+
+  '<div class="card"><div class="card-head"><h3>임기 만료 스크리닝 — 재추천 확인 필요</h3><span class="chip wait">D-'+SET.screenDays+' 이내</span></div>'+
+    '<div class="card-body">'+
+    (over.length ? '<p style="font-size:12.5px;color:var(--red);margin-bottom:10px">사회복지사업법 제20조에 따라 결원 이사는 2개월 이내 보충이 원칙입니다. 기한이 지난 건이 '+over.length+'건 있습니다.</p>' : '')+
+    '<table class="t"><thead><tr><th>법인명</th><th>이사</th><th>임기</th><th>D-day</th><th>비고</th><th>관리</th></tr></thead>'+
+    '<tbody>'+(rows || '<tr><td colspan="6"><div class="empty">확인이 필요한 임기만료 건이 없습니다.</div></td></tr>')+'</tbody></table>'+
+    '</div></div>'+
+  '<div class="card"><div class="card-head"><h3>추천절차 진행 현황</h3></div><div class="card-body">'+
+    '<table class="t"><thead><tr><th>법인명</th><th>건명</th><th>진행 단계</th><th>관리</th></tr></thead>'+
+    '<tbody>'+(caseRows || '<tr><td colspan="4"><div class="empty">진행 중인 추천절차가 없습니다.<br><button class="btn-navy btn" style="margin-top:8px" onclick="navTo(\'case\')">추천절차 관리로 이동</button></div></td></tr>')+'</tbody></table>'+
+    '</div></div>';
+}
+
+/* ════════════════════ 6. 법인 및 현황 관리 ════════════════════ */
+var treeQ = "";
+function renderCorp(){
+  var q = (treeQ||"").toLowerCase();
+  var list = DB.corporations.filter(function(c){
+    if(c.archived) return false;
+    if(!q) return true;
+    var hay = (c.name+" "+c.rep+" "+apptsOfCorp(c.id).map(function(a){var cd=candById(a.candidateId);return cd?cd.name:"";}).join(" ")).toLowerCase();
+    return hay.indexOf(q)>=0;
+  });
+  var rows = list.map(function(c){
+    var appts = apptsOfCorp(c.id).filter(function(a){ var s=apptEffectiveStatus(a); return s==="active"||s==="scheduled"||s==="expired"; });
+    var hasExpired = appts.some(function(a){ return apptEffectiveStatus(a)==="expired"; });
+    var dirTxt = appts.map(function(a){ var cd=candById(a.candidateId); return esc(cd?cd.name:"?"); }).join(", ") || "<span class='b-mute badge'>미등록</span>";
+    return "<tr><td><b>"+esc(c.name)+"</b><br><span style='color:var(--sub);font-size:12px'>"+esc(c.rep||"")+"</span></td>"+
+      "<td>"+(GROUP_LABEL[c.group]||"기타")+"</td>"+
+      "<td>"+dirTxt+(hasExpired?" <span class='badge b-no' title='임기 만료 이사 존재'>만료</span>":"")+"</td>"+
+      "<td>"+esc(c.tel||"")+"</td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"openCorpDetail('"+c.id+"')\">상세</button></td></tr>";
+  }).join("");
+
+  return ''+
+  '<div class="toolbar"><input type="search" id="treeSearch" placeholder="🔍 법인명 · 대표자 · 이사명 검색" value="'+escAttr(treeQ)+'">'+
+  '<button class="btn btn-navy" style="margin-left:auto" onclick="openCorpModal(null)">+ 법인 등록</button></div>'+
+  '<div class="card"><div class="card-body">'+
+  '<table class="t"><thead><tr><th>법인명 / 대표자</th><th>유형</th><th>현재 이사</th><th>연락처</th><th>관리</th></tr></thead>'+
+  '<tbody>'+(rows || '<tr><td colspan="5"><div class="empty">등록된 법인이 없습니다. 상단의 [+ 법인 등록]으로 시작하세요.</div></td></tr>')+'</tbody></table>'+
+  '</div></div>';
+}
+
+function openCorpDetail(id){
+  var c = corpById(id); if(!c) return;
+  var appts = apptsOfCorp(id).sort(function(a,b){ return (b.startDate||"").localeCompare(a.startDate||""); });
+  var rows = appts.map(function(a){
+    var cd = candById(a.candidateId); var st = apptEffectiveStatus(a);
+    var cls = st==="active"?"b-ok":st==="scheduled"?"b-warn":st==="expired"?"b-no":"b-mute";
+    return "<tr><td>"+esc(cd?cd.name:"—")+"</td><td>"+esc(a.startDate)+" ~ "+esc(a.endDate)+"</td>"+
+      "<td>"+(a.termNumber||1)+"기</td><td><span class='badge "+cls+"'>"+(APPT_STATUS[st]||st)+"</span></td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"openApptModal('"+a.id+"','"+id+"')\">수정</button></td></tr>";
+  }).join("");
+  showModal(
+    '<h3>'+esc(c.name)+'</h3><div class="modal-sub">'+(GROUP_LABEL[c.group]||"기타")+' · '+esc(c.rep||"")+' · '+esc(c.tel||"")+'</div>'+
+    '<div style="font-size:12.5px;color:var(--sub);margin-bottom:10px">'+
+      (c.establishedDate?'설립일 '+esc(c.establishedDate)+' · ':'')+
+      (c.dept?'시 담당부서 '+esc(c.dept)+' · ':'')+
+      (c.email?esc(c.email):'')+
+      (c.addr?'<br>'+esc(c.addr):'')+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 6px"><b style="font-size:13.5px">선임 이력</b>'+
+    '<button class="btn btn-line btn-sm" onclick="openApptModal(null,\''+id+'\')">+ 선임 이력 등록</button></div>'+
+    '<table class="t"><thead><tr><th>이사</th><th>임기</th><th>차수</th><th>상태</th><th></th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="5"><div class="empty">등록된 외부추천이사가 없습니다.</div></td></tr>')+'</tbody></table>'+
+    '<div class="modal-actions">'+
+      '<button class="btn btn-danger" onclick="archiveCorp(\''+id+'\')">법인 보관</button>'+
+      '<button class="btn btn-line" onclick="openCorpModal(\''+id+'\')">법인정보 수정</button>'+
+      '<button class="btn btn-navy" onclick="closeModal()">닫기</button>'+
+    '</div>'
+  );
+}
+
+function openCorpModal(id){
+  var c = id ? corpById(id) : null;
+  var groupOpts = Object.keys(GROUP_LABEL).map(function(k){ return "<option value='"+k+"'"+(c&&c.group===k?" selected":"")+">"+GROUP_LABEL[k]+"</option>"; }).join("");
+  showModal(
+    '<h3>'+(c?"법인 정보 수정":"법인 등록")+'</h3><div class="modal-sub">사회복지법인 기본 정보를 입력하세요.</div>'+
+    '<div class="form-grid full">'+
+    '<label>법인명 (필수)<input id="f-c-name" value="'+escAttr(c?c.name:"")+'"></label>'+
+    '<label>유형<select id="f-c-group">'+groupOpts+'</select></label>'+
+    '<label>대표자<input id="f-c-rep" value="'+escAttr(c?c.rep:"")+'"></label>'+
+    '<label>연락처<input id="f-c-tel" value="'+escAttr(c?c.tel:"")+'"></label>'+
+    '<label>이메일<input id="f-c-mail" value="'+escAttr(c?c.email:"")+'"></label>'+
+    '<label>시 담당부서<input id="f-c-dept" value="'+escAttr(c?c.dept:"")+'"></label>'+
+    '<label>설립일<input id="f-c-est" value="'+escAttr(c?c.establishedDate:"")+'" placeholder="예: 1997.01.07"></label>'+
+    '<label>주소<input id="f-c-addr" value="'+escAttr(c?c.addr:"")+'"></label>'+
+    (c ? '<div class="form-hint">법인명을 변경해도 기존 선임 이력·추천절차 연결(ID 기반)은 그대로 유지됩니다.</div>' : '')+
+    '</div>'+
+    '<div class="modal-actions"><button class="btn btn-line" onclick="closeModal()">취소</button><button class="btn btn-navy" onclick="saveCorp('+(c?"'"+id+"'":"null")+')">저장</button></div>'
+  );
+}
+async function saveCorp(id){
+  var name = document.getElementById("f-c-name").value.trim();
+  if(!name){ toast("법인명을 입력하세요."); return; }
+  var obj = {
+    name:name, group:document.getElementById("f-c-group").value,
+    rep:document.getElementById("f-c-rep").value.trim(),
+    tel:document.getElementById("f-c-tel").value.trim(),
+    email:document.getElementById("f-c-mail").value.trim(),
+    dept:document.getElementById("f-c-dept").value.trim(),
+    establishedDate:document.getElementById("f-c-est").value.trim(),
+    addr:document.getElementById("f-c-addr").value.trim()
+  };
+  if(id){ var c=corpById(id); Object.assign(c,obj); pushLog("법인 수정", name); }
+  else{ obj.id=uid(); obj.archived=false; DB.corporations.push(obj); pushLog("법인 등록", name); }
+  await saveDB(); closeModal(); render(); toast("저장되었습니다.");
+}
+async function archiveCorp(id){
+  var c = corpById(id); if(!c) return;
+  if(!confirm("'"+c.name+"' 법인을 보관 처리합니다. 선임 이력·추천절차 데이터는 삭제되지 않습니다. 계속할까요?")) return;
+  c.archived = true; await saveDB(); await pushLog("법인 보관", c.name); closeModal(); render(); toast("보관 처리되었습니다.");
+}
+
+function openApptModal(apptId, corpId, fixCandId){
+  var a = apptId ? apptById(apptId) : null;
+  corpId = corpId || (a?a.corpId:null);
+  var candSel = DB.candidates.filter(function(c){return !c.archived;}).map(function(c){
+    return "<option value='"+c.id+"'"+((fixCandId===c.id)||(a&&a.candidateId===c.id)?" selected":"")+">"+esc(c.name)+" ("+(CAND_STATUS[c.status]||c.status)+")</option>";
+  }).join("");
+  showModal(
+    '<h3>선임 이력 '+(a?"수정":"등록")+'</h3><div class="modal-sub">이사(후보자)와 임기 정보를 입력하세요.</div>'+
+    '<div class="form-grid full">'+
+    '<label>이사(후보자) (필수)<select id="f-ap-cand"'+(fixCandId?" disabled":"")+'>'+(candSel||"<option value=''>등록된 후보자 없음</option>")+'</select></label>'+
+    '<div class="form-hint">명단에 없는 사람은 [추천후보자 관리]에서 먼저 등록하세요.</div>'+
+    '<label>임기 차수<input type="number" id="f-ap-term" min="1" max="20" value="'+(a?(a.termNumber||1):1)+'"></label>'+
+    '<label>상태<select id="f-ap-status">'+Object.keys(APPT_STATUS).map(function(k){return "<option value='"+k+"'"+(a&&a.status===k?" selected":"")+">"+APPT_STATUS[k]+"</option>";}).join("")+'</select></label>'+
+    '<label>임기 시작일 (필수)<input type="date" id="f-ap-s" value="'+escAttr(a?a.startDate:"")+'"></label>'+
+    '<label>임기 종료일 (필수)<input type="date" id="f-ap-e" value="'+escAttr(a?a.endDate:"")+'"></label>'+
+    '<label>비고<input id="f-ap-note" value="'+escAttr(a?a.note:"")+'"></label>'+
+    '</div>'+
+    '<div class="modal-actions">'+(a?'<button class="btn btn-danger" onclick="deleteAppt(\''+a.id+'\',\''+corpId+'\')">삭제</button>':'')+
+    '<button class="btn btn-line" onclick="'+(corpId?"openCorpDetail('"+corpId+"')":"closeModal()")+'">취소</button>'+
+    '<button class="btn btn-navy" onclick="saveAppt('+(a?"'"+a.id+"'":"null")+',\''+corpId+'\')">저장</button></div>'
+  );
+}
+function validAppt(candId,s,e,term){
+  if(!candId || !candById(candId)) return "이사(후보자)를 선택하세요.";
+  if(!isValidISO(s)) return "임기 시작일을 입력하세요.";
+  if(!isValidISO(e)) return "임기 종료일을 입력하세요.";
+  if(s>e) return "임기 시작일이 종료일보다 늦을 수 없습니다.";
+  if(!term||term<1||term>20) return "임기 차수는 1~20 사이여야 합니다.";
+  return null;
+}
+async function saveAppt(id, corpId){
+  var candId = document.getElementById("f-ap-cand").value;
+  var s = document.getElementById("f-ap-s").value, e = document.getElementById("f-ap-e").value;
+  var term = parseInt(document.getElementById("f-ap-term").value,10);
+  var err = validAppt(candId,s,e,term); if(err){ toast(err); return; }
+  var obj = { corpId:corpId, candidateId:candId, startDate:s, endDate:e, termNumber:term,
+    status:document.getElementById("f-ap-status").value, note:document.getElementById("f-ap-note").value.trim() };
+  if(id){ Object.assign(apptById(id), obj); pushLog("선임 이력 수정", corpById(corpId).name); }
+  else{ obj.id=uid(); DB.appointments.push(obj); pushLog("선임 이력 등록", corpById(corpId).name); }
+  await saveDB(); openCorpDetail(corpId); render(); toast("저장되었습니다.");
+}
+async function deleteAppt(id, corpId){
+  if(!confirm("이 선임 이력을 삭제할까요?")) return;
+  DB.appointments = DB.appointments.filter(function(a){return a.id!==id;});
+  await saveDB(); await pushLog("선임 이력 삭제", corpId); openCorpDetail(corpId); render();
+}
+
+/* ════════════════════ 7. 추천후보자 관리 ════════════════════ */
+var poolFilter = "all", poolFieldFilter = "all", poolQ = "";
+var CAND_FILTERS = [["all","전체"],["available","추천 가능"],["active","활동 중"],["checking","결격 확인 중"],["hold","추천 보류"],["declined","본인 거부"]];
+
+function candFitness(cand){
+  var reasons=[], level="ok";
+  function bump(lv){ if(lv==="no") level="no"; else if(lv==="warn" && level!=="no") level="chk"; }
+  if(cand.status==="hold"){ reasons.push({lv:"no",txt:"추천 보류 상태"+(cand.note?" — "+cand.note:"")}); bump("no"); }
+  if(cand.status==="declined"){ reasons.push({lv:"no",txt:"본인 추천 거부 이력"}); bump("no"); }
+  if(cand.consentConfirmedDate){
+    var el = daysBetween(cand.consentConfirmedDate, todayISO());
+    if(el>=180){ reasons.push({lv:"warn",txt:"추천 의사 최종 확인일이 6개월 이상 지남"}); bump("warn"); }
+    else reasons.push({lv:"ok",txt:"추천 의사 확인 "+fmt(cand.consentConfirmedDate)});
+  } else { reasons.push({lv:"warn",txt:"추천 의사 최종 확인일 미기록"}); bump("warn"); }
+  var recentCount = apptsOfCand(cand.id).filter(function(a){
+    return a.startDate && daysBetween(a.startDate, todayISO())<=365 && daysBetween(a.startDate, todayISO())>=0;
+  }).length;
+  if(recentCount>0){ reasons.push({lv:"warn",txt:"최근 1년 내 다른 건 추천 "+recentCount+"회"}); bump("warn"); }
+  var activeCnt = apptsOfCand(cand.id).filter(function(a){return apptEffectiveStatus(a)==="active";}).length;
+  if(activeCnt>=2){ reasons.push({lv:"warn",txt:"동시에 "+activeCnt+"개 법인 이사 활동 중 — 겸직 여부 확인 필요"}); bump("warn"); }
+  var maxTerm = 0;
+  apptsOfCand(cand.id).forEach(function(a){ if((a.termNumber||1)>maxTerm) maxTerm = a.termNumber||1; });
+  if(maxTerm>=2){ reasons.push({lv:"warn",txt:"동일 법인 기준 "+maxTerm+"기째 — 외부추천이사 연임·재추천은 1회만 가능(내부규정) 확인 필요"}); bump("warn"); }
+  var badge = level==="ok" ? {cls:"b-ok",txt:"추천 가능"} : level==="chk" ? {cls:"b-warn",txt:"확인 필요"} : {cls:"b-no",txt:"추천 보류"};
+  return {badge:badge, reasons:reasons};
+}
+
+function renderPool(){
+  var q = poolQ.toLowerCase();
+  var fieldsPresent = Array.from(new Set(DB.candidates.filter(function(c){return !c.archived;}).map(function(c){return c.field||"기타";}))).sort();
+  var list = DB.candidates.filter(function(c){
+    if(c.archived) return false;
+    if(poolFilter!=="all" && c.status!==poolFilter) return false;
+    if(poolFieldFilter!=="all" && (c.field||"기타")!==poolFieldFilter) return false;
+    if(q && (c.name+" "+(c.tel||"")+" "+(c.affiliation||"")).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  var rows = list.map(function(c){
+    var fit = candFitness(c);
+    var activeCnt = apptsOfCand(c.id).filter(function(a){return apptEffectiveStatus(a)==="active";}).length;
+    return "<tr><td><b>"+esc(c.name)+"</b><br><span style='color:var(--sub);font-size:12px'>"+esc(c.affiliation||"")+"</span></td>"+
+      "<td><span class='chip'>"+esc(c.field||"기타")+"</span></td>"+
+      "<td><span class='badge b-"+(c.status==="available"?"ok":c.status==="active"?"ok":c.status==="checking"?"warn":"no")+"'>"+CAND_STATUS[c.status]+"</span></td>"+
+      "<td>"+activeCnt+"개 법인</td><td>"+esc(c.tel||"")+"</td>"+
+      "<td><span class='badge "+fit.badge.cls+"'>"+fit.badge.txt+"</span></td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"openCandDetail('"+c.id+"')\">상세</button></td></tr>";
+  }).join("");
+  return ''+
+  '<div class="toolbar"><input type="search" id="poolSearch" placeholder="🔍 이름 · 연락처 · 소속 검색" value="'+escAttr(poolQ)+'">'+
+  '<select id="poolFilterSel">'+CAND_FILTERS.map(function(f){return "<option value='"+f[0]+"'"+(poolFilter===f[0]?" selected":"")+">"+f[1]+"</option>";}).join("")+'</select>'+
+  '<select id="poolFieldSel"><option value="all"'+(poolFieldFilter==="all"?" selected":"")+'>분야 전체</option>'+fieldsPresent.map(function(f){return "<option value='"+f+"'"+(poolFieldFilter===f?" selected":"")+">"+f+"</option>";}).join("")+'</select>'+
+  '<button class="btn btn-navy" style="margin-left:auto" onclick="openCandModal(null)">+ 후보자 등록</button></div>'+
+  '<div class="card"><div class="card-body">'+
+  '<table class="t"><thead><tr><th>이름 / 소속</th><th>분야</th><th>상태</th><th>현재 활동</th><th>연락처</th><th>추천 적합성</th><th>관리</th></tr></thead>'+
+  '<tbody>'+(rows || '<tr><td colspan="7"><div class="empty">등록된 후보자가 없습니다. 상단의 [+ 후보자 등록]으로 시작하세요.</div></td></tr>')+'</tbody></table>'+
+  '</div></div>';
+}
+
+function openCandDetail(id){
+  var c = candById(id); if(!c) return;
+  var fit = candFitness(c);
+  var appts = apptsOfCand(id).sort(function(a,b){return (b.startDate||"").localeCompare(a.startDate||"");});
+  var histRows = appts.map(function(a){
+    var corp = corpById(a.corpId); var st = apptEffectiveStatus(a);
+    return "<tr><td>"+esc(corp?corp.name:"—")+"</td><td>"+esc(a.startDate)+" ~ "+esc(a.endDate)+"</td><td>"+(APPT_STATUS[st]||st)+"</td></tr>";
+  }).join("");
+  var reasonHtml = fit.reasons.map(function(r){
+    var ico = r.lv==="ok"?"✅":r.lv==="warn"?"⚠️":"⛔"; return "<div class='row'><span class='ico'>"+ico+"</span><span class='txt'>"+esc(r.txt)+"</span></div>";
+  }).join("");
+  showModal(
+    '<h3>'+esc(c.name)+'</h3><div class="modal-sub">'+esc(c.field||"기타")+' · '+esc(c.affiliation||"")+' · '+esc(c.tel||"")+'</div>'+
+    '<div style="margin-bottom:6px"><span class="badge '+fit.badge.cls+'">'+fit.badge.txt+'</span></div>'+
+    '<div class="alert-list" style="margin-bottom:14px">'+reasonHtml+'</div>'+
+    '<b style="font-size:13.5px">추천/선임 이력</b>'+
+    '<table class="t" style="margin-top:6px"><thead><tr><th>법인</th><th>임기</th><th>상태</th></tr></thead>'+
+    '<tbody>'+(histRows||'<tr><td colspan="3"><div class="empty">이력이 없습니다.</div></td></tr>')+'</tbody></table>'+
+    '<div class="modal-actions"><button class="btn btn-danger" onclick="archiveCand(\''+id+'\')">보관</button>'+
+    '<button class="btn btn-line" onclick="openCandModal(\''+id+'\')">정보 수정</button>'+
+    '<button class="btn btn-navy" onclick="closeModal()">닫기</button></div>'
+  );
+}
+function openCandModal(id){
+  var c = id?candById(id):null;
+  var fieldOpts = FIELD_OPTIONS.map(function(f){ return "<option value='"+f+"'"+(c&&c.field===f?" selected":"")+">"+f+"</option>"; }).join("");
+  showModal(
+    '<h3>후보자 '+(c?"수정":"등록")+'</h3><div class="modal-sub">추천 후보자 인력풀 정보를 입력하세요.</div>'+
+    '<div class="form-grid full">'+
+    '<label>이름 (필수)<input id="f-cd-name" value="'+escAttr(c?c.name:"")+'"></label>'+
+    '<label>분야<select id="f-cd-field">'+fieldOpts+'</select></label>'+
+    '<label>상태<select id="f-cd-status">'+Object.keys(CAND_STATUS).map(function(k){return "<option value='"+k+"'"+(c&&c.status===k?" selected":"")+">"+CAND_STATUS[k]+"</option>";}).join("")+'</select></label>'+
+    '<label>소속/직함<input id="f-cd-aff" value="'+escAttr(c?c.affiliation:"")+'"></label>'+
+    '<label>연락처<input id="f-cd-tel" value="'+escAttr(c?c.tel:"")+'"></label>'+
+    '<label>추천 의사 최종 확인일<input type="date" id="f-cd-cfm" value="'+escAttr(c?c.consentConfirmedDate:"")+'"></label>'+
+    '<label>비고<input id="f-cd-note" value="'+escAttr(c?c.note:"")+'"></label>'+
+    '</div>'+
+    '<div class="modal-actions"><button class="btn btn-line" onclick="closeModal()">취소</button><button class="btn btn-navy" onclick="saveCand('+(c?"'"+id+"'":"null")+')">저장</button></div>'
+  );
+}
+async function saveCand(id){
+  var name = document.getElementById("f-cd-name").value.trim();
+  if(!name){ toast("이름을 입력하세요."); return; }
+  var obj = { name:name, status:document.getElementById("f-cd-status").value, field:document.getElementById("f-cd-field").value,
+    affiliation:document.getElementById("f-cd-aff").value.trim(), tel:document.getElementById("f-cd-tel").value.trim(),
+    consentConfirmedDate:document.getElementById("f-cd-cfm").value, note:document.getElementById("f-cd-note").value.trim() };
+  if(id){ Object.assign(candById(id),obj); pushLog("후보자 수정", name); }
+  else{ obj.id=uid(); obj.archived=false; DB.candidates.push(obj); pushLog("후보자 등록", name); }
+  await saveDB(); closeModal(); render(); toast("저장되었습니다.");
+}
+async function archiveCand(id){
+  var c = candById(id); if(!confirm("'"+c.name+"' 후보자를 보관 처리할까요?")) return;
+  c.archived = true; await saveDB(); await pushLog("후보자 보관", c.name); closeModal(); render();
+}
+
+/* ════════════════════ 8. 추천절차 관리 ════════════════════ */
+function renderCase(){
+  var rows = DB.cases.slice().sort(function(a,b){return (b.createdAt||"").localeCompare(a.createdAt||"");}).map(function(k){
+    var corp = corpById(k.corpId);
+    return "<tr><td>"+esc(corp?corp.name:"—")+"</td><td>"+esc(k.title)+"</td>"+
+      "<td>"+STAGES.map(function(s,i){return "<span class='stage-pill "+(i<k.stage?"done":i===k.stage?"cur":"")+"'>"+(i+1)+". "+s+"</span>";}).join("")+"</td>"+
+      "<td>"+(k.recommendationDueDate? esc(k.recommendationDueDate):"—")+"</td>"+
+      "<td><button class='btn btn-line btn-sm' onclick=\"openCaseDetail('"+k.id+"')\">열기</button></td></tr>";
+  }).join("");
+  return ''+
+  '<div class="toolbar"><button class="btn btn-navy" style="margin-left:auto" onclick="openCaseModal(null)">+ 추천절차 시작</button></div>'+
+  '<div class="card"><div class="card-body">'+
+  '<table class="t"><thead><tr><th>법인</th><th>건명</th><th>진행 단계</th><th>추천 처리기한</th><th>관리</th></tr></thead>'+
+  '<tbody>'+(rows || '<tr><td colspan="5"><div class="empty">등록된 추천절차가 없습니다.</div></td></tr>')+'</tbody></table>'+
+  '</div></div>';
+}
+function openCaseModal(id, presetCorp, presetCand){
+  var k = id?caseById(id):null;
+  var corpOpts = DB.corporations.filter(function(c){return !c.archived;}).map(function(c){
+    return "<option value='"+c.id+"'"+((presetCorp===c.id)||(k&&k.corpId===c.id)?" selected":"")+">"+esc(c.name)+"</option>";
+  }).join("");
+  showModal(
+    '<h3>추천절차 '+(k?"수정":"시작")+'</h3><div class="modal-sub">'+(presetCand?"임기만료 스크리닝에서 연결된 재추천 건입니다. ":"")+'법인·사유·건명을 입력하세요.</div>'+
+    '<div class="form-grid full">'+
+    '<label>법인 (필수)<select id="f-k-corp">'+corpOpts+'</select></label>'+
+    '<label>건명<input id="f-k-title" value="'+escAttr(k?k.title:"")+'" placeholder="예: 이사 OOO 임기만료 재추천"></label>'+
+    '<label>사유<select id="f-k-reason">'+CASE_REASON.map(function(r){return "<option"+(k&&k.reason===r?" selected":"")+">"+r+"</option>";}).join("")+'</select></label>'+
+    '<label>필요 인원<input type="number" id="f-k-count" min="1" max="10" value="'+(k?k.requiredCount||1:1)+'"></label>'+
+    '<label>선임사유 발생일<input type="date" id="f-k-vac" value="'+escAttr(k?k.vacancyDate:"")+'"></label>'+
+    '<label>추천 처리기한<input type="date" id="f-k-due" value="'+escAttr(k?k.recommendationDueDate:"")+'"></label>'+
+    '</div>'+
+    '<div class="modal-actions"><button class="btn btn-line" onclick="closeModal()">취소</button><button class="btn btn-navy" onclick="saveCase('+(k?"'"+id+"'":"null")+',\''+(presetCand||"")+'\')">저장</button></div>'
+  );
+}
+async function saveCase(id, presetCand){
+  var corpId = document.getElementById("f-k-corp").value;
+  if(!corpId){ toast("법인을 선택하세요."); return; }
+  var obj = {
+    corpId:corpId, title:document.getElementById("f-k-title").value.trim() || "이사 추천 절차",
+    reason:document.getElementById("f-k-reason").value, requiredCount:parseInt(document.getElementById("f-k-count").value,10)||1,
+    vacancyDate:document.getElementById("f-k-vac").value, recommendationDueDate:document.getElementById("f-k-due").value
+  };
+  if(id){ Object.assign(caseById(id),obj); pushLog("추천절차 수정", obj.title); }
+  else{
+    obj.id=uid(); obj.stage=0; obj.createdAt=todayISO(); obj.candidateIds=presetCand?[presetCand]:[]; obj.dates={};
+    DB.cases.push(obj); pushLog("추천절차 시작", obj.title);
+  }
+  await saveDB(); closeModal(); navTo("case"); setTimeout(function(){openCaseDetail(id||obj.id);},0);
+}
+var CASE_DATE_FIELDS = [
+  ["requestReceivedDate","추천 요청 접수일"],["candidateSelectionDate","후보 선정일"],
+  ["committeeReviewDate","전문위원회 심의일"],["recommendationSentDate","추천 통보일"],
+  ["boardAppointmentDate","이사회 선임일"],["resultReceivedDate","결과 통보 접수일"],["completedDate","최종 완료일"]
+];
+function openCaseDetail(id){
+  var k = caseById(id); if(!k) return;
+  var corp = corpById(k.corpId);
+  var candChips = DB.candidates.filter(function(c){return !c.archived;}).map(function(c){
+    var on = (k.candidateIds||[]).indexOf(c.id)>=0;
+    return "<label style='display:inline-flex;align-items:center;gap:5px;margin:2px 8px 2px 0;font-weight:400;font-size:12.5px'>"+
+      "<input type='checkbox' value='"+c.id+"' "+(on?"checked":"")+" onchange=\"toggleCaseCand('"+k.id+"','"+c.id+"',this.checked)\"> "+esc(c.name)+"</label>";
+  }).join("");
+  var dateFields = CASE_DATE_FIELDS.map(function(f){
+    return "<label>"+f[1]+"<input type='date' data-cf='"+f[0]+"' value='"+escAttr((k.dates||{})[f[0]]||"")+"' onchange=\"setCaseDate('"+k.id+"','"+f[0]+"',this.value)\"></label>";
+  }).join("");
+  var stageBtns = STAGES.map(function(s,i){
+    return "<button class='btn "+(i===k.stage?"btn-navy":"btn-line")+" btn-sm' onclick=\"setStage('"+k.id+"',"+i+")\">"+(i+1)+". "+s+"</button>";
+  }).join(" ");
+  showModal(
+    '<h3>'+esc(k.title)+'</h3><div class="modal-sub">'+esc(corp?corp.name:"")+' · 사유: '+esc(k.reason||"")+' · 필요 인원 '+(k.requiredCount||1)+'명</div>'+
+    '<div style="margin-bottom:12px"><b style="font-size:13px">진행 단계</b><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+stageBtns+'</div></div>'+
+    '<div style="margin-bottom:12px"><b style="font-size:13px">추천 후보자 (3배수 매칭)</b><div style="margin-top:6px">'+(candChips||"<span style=\'font-size:12.5px;color:var(--sub)\'>등록된 후보자가 없습니다.</span>")+'</div></div>'+
+    '<div class="form-grid full"><b style="grid-column:1/-1;font-size:13px">단계별 일자</b>'+dateFields+'</div>'+
+    '<div class="modal-actions">'+
+      '<button class="btn btn-line" onclick="genDocument(\''+k.id+'\')">추천 공문 초안 생성</button>'+
+      '<button class="btn btn-danger" onclick="deleteCase(\''+k.id+'\')">삭제</button>'+
+      '<button class="btn btn-line" onclick="openCaseModal(\''+k.id+'\')">기본정보 수정</button>'+
+      '<button class="btn btn-navy" onclick="closeModal()">닫기</button>'+
+    '</div>'
+  );
+}
+async function toggleCaseCand(caseId, candId, on){
+  var k = caseById(caseId); k.candidateIds = k.candidateIds||[];
+  if(on){ if(k.candidateIds.indexOf(candId)<0) k.candidateIds.push(candId); }
+  else{ k.candidateIds = k.candidateIds.filter(function(x){return x!==candId;}); }
+  await saveDB();
+}
+async function setCaseDate(caseId, field, val){
+  var k = caseById(caseId); k.dates = k.dates||{}; k.dates[field]=val; await saveDB();
+}
+async function setStage(caseId, stage){
+  var k = caseById(caseId); k.stage = stage; await saveDB(); await pushLog("추천절차 단계 변경", k.title+" → "+STAGES[stage]); openCaseDetail(caseId); render();
+}
+async function deleteCase(id){
+  var k = caseById(id); if(!confirm("'"+k.title+"' 추천절차를 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return;
+  DB.cases = DB.cases.filter(function(x){return x.id!==id;});
+  await saveDB(); await pushLog("추천절차 삭제", k.title); closeModal(); render();
+}
+function genDocument(id){
+  var k = caseById(id); var corp = corpById(k.corpId);
+  var names = (k.candidateIds||[]).map(function(cid){var c=candById(cid);return c?c.name:"";}).filter(Boolean);
+  var body =
+    "수신: "+esc(corp?corp.name:"")+" 대표이사\n"+
+    "제목: 사회복지법인 외부추천이사 후보자 추천 통보\n\n"+
+    "1. 관련: "+esc(corp?corp.name:"")+"의 이사 추천 요청("+esc(k.reason||"")+")에 대한 회신\n"+
+    "2. 「사회복지사업법」 제18조제2항 및 같은 법 시행령 제8조의2 등에 따라 아래와 같이 외부추천이사 후보자를 추천하오니, 이사회 의결을 거쳐 선임하여 주시기 바랍니다.\n\n"+
+    "   - 추천 대상 법인: "+esc(corp?corp.name:"")+"\n"+
+    "   - 선임 대상 이사 수: "+(k.requiredCount||1)+"명 (3배수 추천)\n"+
+    "   - 추천 후보자: "+(names.join(", ")||"(등록된 후보자 없음)")+"\n"+
+    "   - 추천 통보일: "+(k.dates&&k.dates.recommendationSentDate ? k.dates.recommendationSentDate : todayISO())+"\n\n"+
+    "3. 귀 법인은 추천받은 후보자 중에서 이사를 선임하고, 선임 후에는 대구광역시장에게 법인임원임면보고를 하여 주시기 바랍니다.\n"+
+    "   (첨부서류: 이사회 회의록 사본, 취임승낙서, 이력서, 특수관계부존재각서, 결격사유부존재각서, 본 추천서)\n\n"+
+    "4. 「사회복지사업법」 제20조에 따라 결원 이사는 결원 발생일로부터 2개월 이내에 보충하여야 함을 알려드립니다.\n\n"+
+    "대구중구지역사회보장협의체 사무국 ("+esc(SET.contactPhone)+" / "+esc(SET.contactEmail)+")\n"+
+    esc(SET.address||"");
+  showModal(
+    '<h3>추천 공문 초안</h3><div class="modal-sub">아래 내용을 복사하여 기관 공문 서식에 붙여넣어 사용하세요. (매뉴얼 서식 6·7 참고)</div>'+
+    '<textarea id="docDraft" style="width:100%;height:320px;border:1.4px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.7">'+esc(body)+'</textarea>'+
+    '<div class="modal-actions"><button class="btn btn-line" onclick="openCaseDetail(\''+id+'\')">뒤로</button>'+
+    '<button class="btn btn-navy" onclick="copyDraft()">복사하기</button></div>'
+  );
+}
+function copyDraft(){
+  var ta = document.getElementById("docDraft"); ta.select();
+  try{ document.execCommand("copy"); toast("클립보드에 복사되었습니다."); }catch(e){ toast("복사에 실패했습니다. 직접 선택해 복사해주세요."); }
+}
+
+/* ════════════════════ 9. 이용안내 ════════════════════ */
+function renderGuide(){
+  return ''+
+  '<div class="card"><div class="card-body">'+
+  '<h3 style="margin-bottom:10px">외부추천이사 제도 안내 (중구 사회복지법인 외부추천이사 운영매뉴얼 기준)</h3>'+
+  '<p style="font-size:13.5px;color:var(--ink);margin-bottom:10px">사회복지법인은 대표이사를 포함한 이사 7명 이상과 감사 2명 이상을 두어야 하며, 이사 정수의 1/3(소수점 이하 절사) 이상을 시·도 사회보장위원회 또는 지역사회보장협의체가 3배수로 추천한 사람 중에서 선임해야 합니다(법 제18조). 이사 임기는 3년, 감사 임기는 2년이며 각각 연임할 수 있습니다.</p>'+
+  '<div class="set-note" style="margin-bottom:14px"><b>핵심 처리기한</b><br>'+
+  '· 법인의 추천 요청 : 선임사유 발생일로부터 <b>15일 이내</b> (임기만료 등 예측 가능한 경우 <b>3개월 전</b>부터 요청 가능)<br>'+
+  '· 협의체의 추천 : 요청받은 날부터 <b>30일 이내</b> 추천 (시행령 제8조의2제2항)<br>'+
+  '· 결원 이사 보충 : 결원 발생일로부터 <b>2개월 이내</b> (법 제20조)<br>'+
+  '· 외부추천이사 재요청 : 결격·취임거부 등 불가피한 경우에 한해 <b>한 차례만</b> 허용, 단순히 법인이 원하지 않는다는 사유로는 재요청 불가<br>'+
+  '· 외부추천이사 연임·재추천 : 중구 내부규정상 <b>한 차례만</b> 가능 (연임 시에도 최초 선임과 동일한 추천절차를 거쳐야 함)<br>'+
+  '· 직전 3개 회계연도 세입평균 <b>30억원 이상</b>인 법인은 대구시(사회보장위원회)의 추천을 받아야 함'+
+  '</div>'+
+  '<h3 style="margin:18px 0 10px">추천절차 단계 안내</h3>'+
+  '<table class="t"><thead><tr><th>단계</th><th>내용</th></tr></thead><tbody>'+
+  STAGES.map(function(s,i){
+    var desc = [
+      "법인으로부터 이사 추천 요청 공문을 접수합니다. (법인명·주요사업·선임대상 이사 수 명기, 15일/3개월 기준 확인)",
+      "인력풀(후보자 명단)에서 분야별로 3배수 내외의 후보자를 선정합니다.",
+      "협의체 전문위원회 또는 대표협의체에서 후보자 결격사유·적격 여부를 심의합니다.",
+      "심의 결과를 바탕으로 서면(공문)으로 법인에 추천 후보자를 통보합니다.",
+      "법인 이사회 의결을 거쳐 추천 후보자 중 1명을 이사로 선임합니다.",
+      "법인으로부터 선임 결과(이사회 회의록, 취임승낙서 등) 및 임원 임면보고 여부를 확인·등록합니다.",
+      "선임 절차가 완료되어 임기 관리(재임기간 스크리닝) 대상으로 전환됩니다."
+    ][i];
+    return "<tr><td>"+(i+1)+". "+s+"</td><td>"+desc+"</td></tr>";
+  }).join("")+
+  '</tbody></table>'+
+  '<h3 style="margin:18px 0 10px">후보군 분야 구분</h3>'+
+  '<p style="font-size:13px;color:var(--sub);margin-bottom:8px">아동복지·노인복지·장애인복지·여성가족·자활·학계·사회복지일반 등으로 구분하여 매년 인력풀을 공고·현행화합니다(법 제18조제8항). 사회복지법인의 대표자, 비영리법인·단체의 대표자, 지역사회보장협의체의 대표자는 후보군에서 제외됩니다.</p>'+
+  '<div class="set-note" style="margin-top:16px"><b>관계기관 연락처</b> — 보건복지부 복지정책과 129(정책·신고) · 국민권익위원회 110(공익신고·보호) · 감사원 02-770-7000(부패행위 감사청구) · 법률구조공단 132(법률상담) · 협의체 사무국 '+esc(SET.contactPhone)+' / '+esc(SET.contactEmail)+'</div>'+
+  '</div></div>';
+}
+
+/* ════════════════════ 10. 통계 ════════════════════ */
+function renderReport(){
+  var byGroup = {};
+  DB.corporations.filter(function(c){return !c.archived;}).forEach(function(c){ byGroup[c.group]=(byGroup[c.group]||0)+1; });
+  var groupRows = Object.keys(GROUP_LABEL).map(function(k){
+    return "<tr><td>"+GROUP_LABEL[k]+"</td><td>"+(byGroup[k]||0)+"개</td></tr>";
+  }).join("");
+  var candByStatus = {};
+  DB.candidates.filter(function(c){return !c.archived;}).forEach(function(c){ candByStatus[c.status]=(candByStatus[c.status]||0)+1; });
+  var candRows = Object.keys(CAND_STATUS).map(function(k){
+    return "<tr><td>"+CAND_STATUS[k]+"</td><td>"+(candByStatus[k]||0)+"명</td></tr>";
+  }).join("");
+  var candByField = {};
+  DB.candidates.filter(function(c){return !c.archived;}).forEach(function(c){ var f=c.field||"기타"; candByField[f]=(candByField[f]||0)+1; });
+  var fieldRows = Object.keys(candByField).sort().map(function(f){
+    return "<tr><td>"+esc(f)+"</td><td>"+candByField[f]+"명</td></tr>";
+  }).join("");
+  var caseByStage = {};
+  DB.cases.forEach(function(k){ caseByStage[k.stage]=(caseByStage[k.stage]||0)+1; });
+  var caseRows = STAGES.map(function(s,i){ return "<tr><td>"+(i+1)+". "+s+"</td><td>"+(caseByStage[i]||0)+"건</td></tr>"; }).join("");
+  return ''+
+  '<div class="card"><div class="card-head"><h3>법인 유형별 현황</h3></div><div class="card-body"><table class="t"><thead><tr><th>유형</th><th>법인 수</th></tr></thead><tbody>'+groupRows+'</tbody></table></div></div>'+
+  '<div class="card"><div class="card-head"><h3>후보자 상태별 현황</h3></div><div class="card-body"><table class="t"><thead><tr><th>상태</th><th>인원</th></tr></thead><tbody>'+candRows+'</tbody></table></div></div>'+
+  '<div class="card"><div class="card-head"><h3>후보자 분야별 현황 (인력풀)</h3></div><div class="card-body"><table class="t"><thead><tr><th>분야</th><th>인원</th></tr></thead><tbody>'+(fieldRows||'<tr><td colspan="2"><div class="empty">데이터가 없습니다.</div></td></tr>')+'</tbody></table></div></div>'+
+  '<div class="card"><div class="card-head"><h3>추천절차 단계별 현황</h3></div><div class="card-body"><table class="t"><thead><tr><th>단계</th><th>건수</th></tr></thead><tbody>'+caseRows+'</tbody></table></div></div>';
+}
+
+/* ════════════════════ 11. 활동 로그 ════════════════════ */
+function renderLog(){
+  var rows = LOGS.slice(0,150).map(function(l){
+    var d = new Date(l.t);
+    var dt = isNaN(d) ? l.t : (d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"));
+    return "<tr><td>"+esc(dt)+"</td><td>"+esc(l.action)+"</td><td>"+esc(l.detail)+"</td></tr>";
+  }).join("");
+  return '<div class="card"><div class="card-head"><h3>활동 로그</h3><span style="font-size:12px;color:var(--sub)">최근 150건 표시</span></div><div class="card-body">'+
+  '<table class="t"><thead><tr><th>일시</th><th>동작</th><th>대상</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3"><div class="empty">기록된 활동이 없습니다.</div></td></tr>')+'</tbody></table></div></div>';
+}
+
+/* ════════════════════ 12. 설정 ════════════════════ */
+function renderSet(){
+  return ''+
+  '<div class="card"><div class="card-head"><h3>기본 정보</h3></div><div class="card-body">'+
+  '<div class="form-grid full">'+
+  '<label>협의체명<input id="s-org" value="'+escAttr(SET.orgName)+'"></label>'+
+  '<label>사무국 연락처<input id="s-tel" value="'+escAttr(SET.contactPhone)+'"></label>'+
+  '<label>사무국 이메일<input id="s-mail" value="'+escAttr(SET.contactEmail)+'"></label>'+
+  '<label>사무국 주소<input id="s-addr" value="'+escAttr(SET.address||"")+'"></label>'+
+  '</div><div style="margin-top:12px"><button class="btn btn-navy" onclick="saveSetForm()">저장</button></div>'+
+  '</div></div>'+
+  '<div class="card"><div class="card-head"><h3>스크리닝 기준값</h3></div><div class="card-body">'+
+  '<div class="form-grid full">'+
+  '<label>임기만료 스크리닝 기준일(D-)<input type="number" id="s-screen" value="'+SET.screenDays+'"></label>'+
+  '<label>처리기한 임박 경고(D-)<input type="number" id="s-due" value="'+SET.dueSoonDays+'"></label>'+
+  '<label>추천통보 후 결과대기 경고일<input type="number" id="s-wait" value="'+SET.resultWaitDays+'"></label>'+
+  '<label>이사회 선임 후 결과등록 경고일<input type="number" id="s-board" value="'+SET.boardResultDays+'"></label>'+
+  '</div><div style="margin-top:12px"><button class="btn btn-navy" onclick="saveSetForm()">저장</button></div>'+
+  '</div></div>'+
+  '<div class="card"><div class="card-head"><h3>계정</h3></div><div class="card-body">'+
+  '<div class="form-grid full">'+
+  '<label>새 아이디<input id="s-id" autocomplete="off"></label>'+
+  '<label>새 비밀번호 (8자 이상)<input id="s-pw" type="password" autocomplete="new-password"></label>'+
+  '<label>새 비밀번호 확인<input id="s-pw2" type="password" autocomplete="new-password"></label>'+
+  '</div><div style="margin-top:12px"><button class="btn btn-navy" onclick="saveAuthForm()">계정 정보 변경</button></div>'+
+  '<div class="set-note" style="margin-top:12px">공용 계정입니다. 변경하면 다른 사람의 로그인은 모두 풀리고 새 계정으로 다시 로그인해야 합니다. 주민번호 등 민감한 개인정보는 입력하지 마세요.</div>'+
+  '</div></div>'+
+  '<div class="card"><div class="card-head"><h3>백업 · 복원</h3></div><div class="card-body">'+
+  '<div class="set-note" style="margin-bottom:12px"><b>저장 위치 안내</b> — 모든 데이터는 구글시트(KV2 시트)에 저장되며 로그인한 사무국 구성원만 열람·입력할 수 있습니다. 동시에 같은 화면을 편집하면 나중에 저장한 내용이 우선하니, 입력 전 새로고침을 권장합니다. 만일을 대비해 주 1회 이상 백업 파일 다운로드를 권장합니다.</div>'+
+  '<button class="btn btn-line" onclick="downloadBackup()">백업 파일 다운로드 (.json)</button> '+
+  '<label class="btn btn-line" style="display:inline-flex;cursor:pointer">복원 파일 업로드<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreBackup(this.files[0])"></label>'+
+  '</div></div>';
+}
+async function saveSetForm(){
+  SET.orgName = document.getElementById("s-org").value.trim() || SET.orgName;
+  SET.contactPhone = document.getElementById("s-tel").value.trim();
+  SET.contactEmail = document.getElementById("s-mail").value.trim();
+  SET.address = document.getElementById("s-addr").value.trim();
+  SET.screenDays = parseInt(document.getElementById("s-screen").value,10)||60;
+  SET.dueSoonDays = parseInt(document.getElementById("s-due").value,10)||7;
+  SET.resultWaitDays = parseInt(document.getElementById("s-wait").value,10)||14;
+  SET.boardResultDays = parseInt(document.getElementById("s-board").value,10)||14;
+  await saveSET(); await pushLog("설정 변경", "기본정보/기준값"); toast("설정이 저장되었습니다.");
+}
+async function saveAuthForm(){
+  var id = document.getElementById("s-id").value.trim();
+  var pw = document.getElementById("s-pw").value, pw2 = document.getElementById("s-pw2").value;
+  if(!id){ toast("새 아이디를 입력하세요."); return; }
+  if(pw.length<8){ toast("비밀번호는 8자 이상으로 입력하세요."); return; }
+  if(pw!==pw2){ toast("비밀번호 확인이 일치하지 않습니다."); return; }
+  try{
+    var d = await api({action:"changeAuth", token:TOKEN, id:id, pw:pw});
+    if(d && d.error==="auth"){ handleAuthLost(); return; }
+    if(d && d.ok){
+      TOKEN = d.token; tokenStore(TOKEN);
+      document.getElementById("s-pw").value = ""; document.getElementById("s-pw2").value = "";
+      await pushLog("계정 정보 변경",""); toast("계정 정보가 변경되었습니다.");
+    } else toast("변경하지 못했습니다. 다시 시도해주세요.");
+  }catch(e){ toast("서버에 연결하지 못했습니다."); }
+}
+function downloadBackup(){
+  var blob = new Blob([JSON.stringify({DB:DB,SET:SET,LOGS:LOGS,exportedAt:new Date().toISOString()},null,2)], {type:"application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a"); a.href=url; a.download="jgss_extdir_backup_"+todayISO()+".json"; a.click();
+  URL.revokeObjectURL(url);
+}
+function restoreBackup(file){
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = async function(){
+    try{
+      var data = JSON.parse(reader.result);
+      if(!confirm("백업 파일로 복원합니다. 현재 데이터를 덮어씁니다. 계속할까요?")) return;
+      DB = data.DB || emptyDB(); normalizeDB(); SET = Object.assign(defaultSET(), data.SET || {}); LOGS = data.LOGS || [];
+      await saveDB(); await saveSET();
+      try{ await storage.set(KEY_LOG, JSON.stringify(LOGS)); }catch(e){}
+      await pushLog("백업 복원", file.name); toast("복원되었습니다."); render();
+    }catch(e){ toast("파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인해주세요."); }
+  };
+  reader.readAsText(file);
+}
+
+/* ════════════════════ 13. 모달 · 이벤트 바인딩 ════════════════════ */
+function showModal(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modalBg").classList.add("on"); }
+function closeModal(){ document.getElementById("modalBg").classList.remove("on"); }
+document.getElementById("modalBg").addEventListener("click", function(e){ if(e.target.id==="modalBg") closeModal(); });
+
+function bindViewEvents(){
+  var ts = document.getElementById("treeSearch");
+  if(ts) ts.addEventListener("input", function(){ treeQ = ts.value; render(); setTimeout(function(){var el=document.getElementById("treeSearch"); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);} },0); });
+  var ps = document.getElementById("poolSearch");
+  if(ps) ps.addEventListener("input", function(){ poolQ = ps.value; render(); setTimeout(function(){var el=document.getElementById("poolSearch"); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);} },0); });
+  var pf = document.getElementById("poolFilterSel");
+  if(pf) pf.addEventListener("change", function(){ poolFilter = pf.value; render(); });
+  var pff = document.getElementById("poolFieldSel");
+  if(pff) pff.addEventListener("change", function(){ poolFieldFilter = pff.value; render(); });
+}
+
+/* ════════════════════ 14. 로그인 · 초기화 ════════════════════ */
+document.getElementById("li-btn").addEventListener("click", doLogin);
+document.getElementById("li-pw").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+
+async function enterApp(){
+  await loadAll();
+  loggedIn = true;
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  navTo("dash");
+}
+async function doLogin(){
+  var id = document.getElementById("li-id").value.trim();
+  var pw = document.getElementById("li-pw").value;
+  var err = document.getElementById("login-err"), btn = document.getElementById("li-btn");
+  function fail(msg){ err.textContent = msg; err.style.display = "block"; }
+  if(!id || !pw){ fail("아이디와 비밀번호를 입력하세요."); return; }
+  btn.disabled = true; btn.textContent = "확인 중...";
+  try{
+    var d = await api({action:"login", id:id, pw:pw});
+    if(d && d.ok && d.token){
+      TOKEN = d.token; tokenStore(TOKEN); err.style.display = "none";
+      await enterApp();
+    } else if(d && d.error==="locked"){ fail("로그인 시도가 너무 많습니다. 10분 뒤에 다시 시도해주세요.");
+    } else if(d && d.error==="not_configured"){ fail("서버에 계정이 아직 등록되지 않았습니다. 관리자에게 문의하세요.");
+    } else { fail("아이디 또는 비밀번호가 올바르지 않습니다."); }
+  }catch(e){
+    fail("서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
+  }
+  btn.disabled = false; btn.textContent = "로그인";
+}
+document.getElementById("logoutBtn").addEventListener("click", function(){
+  var t = TOKEN;
+  if(t){ api({action:"logout", token:t}).catch(function(){}); }
+  loggedIn = false; TOKEN = null; tokenStore(null); DB = null;
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("li-pw").value = "";
+});
+
+(async function init(){
+  var t = tokenLoad();
+  if(!t) return;
+  TOKEN = t;
+  try{ await enterApp(); }catch(e){ TOKEN = null; tokenStore(null); }
+})();
+</script>
+</body>
+</html>
